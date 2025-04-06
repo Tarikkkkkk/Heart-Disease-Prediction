@@ -22,10 +22,18 @@ thal_3 = st.radio("Thal_3", [0, 1])
 cp_0 = st.radio("Chest Pain Type 0 (cp_0)", [0, 1])
 ca_0 = st.radio("Number of major vessels 0 (ca_0)", [0, 1])
 
-input_data = np.array([[exang, age * chol, chol, trestbps, age, oldpeak,
-                        thal_3, cp_0, ca_0, thalach, thal_2]])
+raw_scaled_input = np.array([[age, trestbps, chol, thalach]])
+scaled_input = scaler.transform(raw_scaled_input)
 
-input_data[:, [1, 2, 3, 9]] = scaler.transform(input_data[:, [1, 2, 3, 9]])
+scaled_age = scaled_input[0, 0]
+scaled_trestbps = scaled_input[0, 1]
+scaled_chol = scaled_input[0, 2]
+scaled_thalach = scaled_input[0, 3]
+
+age_chol = scaled_age * scaled_chol
+
+input_data = np.array([[exang, age_chol, scaled_chol, scaled_trestbps, scaled_age,
+                        oldpeak, thal_3, cp_0, ca_0, scaled_thalach, thal_2]])
 
 if st.button("Predict"):
     prediction = model.predict(input_data)[0]
