@@ -60,6 +60,10 @@ user_data = pd.DataFrame([input_dict])
 
 user_data[numerical] = scaler.transform(user_data[numerical])
 
+for col in features:
+    if col not in user_data.columns:
+        user_data[col] = 0
+
 user_data = user_data[features]
 
 if st.button("Predict"):
