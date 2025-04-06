@@ -1,8 +1,12 @@
 import streamlit as st
 import numpy as np
-import joblib
+import pickle
 
-model = joblib.load('model.pkl')
+with open('model.pkl', 'rb') as file:
+    model = pickle.load(file)
+
+with open('scaler.pkl', 'rb') as file:
+    scaler = pickle.load(file)
 
 st.title("Heart Disease Prediction")
 st.subheader("Enter Patient Data:")
@@ -24,11 +28,13 @@ thal = st.selectbox("Thalassemia", [0, 1, 2])
 input_data = np.array([[age, sex, cp, trestbps, chol, fbs, restecg, thalach,
                         exang, oldpeak, slope, ca, thal]])
 
+input_data = scaler.transform(input_data)
+
 if st.button("Predict"):
     prediction = model.predict(input_data)[0]
     prob = model.predict_proba(input_data)[0][1]
     
     if prediction == 1:
-        st.error(f"High risk of heart disease. Probability: {prob:.2f}")
+        st.error(f"High risk of heart disease with a {prob:.2f} chance.")
     else:
-        st.success(f"No heart disease predicted. Probability: {prob:.2f}")
+        st.success(f"No heart disease predicted with a {prob:.2f} chance.")
