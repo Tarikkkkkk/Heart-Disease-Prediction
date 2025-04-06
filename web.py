@@ -1,45 +1,72 @@
 import streamlit as st
-import numpy as np
 import pickle
+import pandas as pd
+import numpy as np
 
-with open('model.pkl', 'rb') as file:
-    model = pickle.load(file)
+model = pickle.load(open("model.pkl", "rb"))
+scaler = pickle.load(open("scaler.pkl", "rb"))
+features = pickle.load(open("features.pkl", "rb"))
 
-with open('scaler.pkl', 'rb') as file:
-    scaler = pickle.load(file)
+st.title("Heart Disease Prediction App")
+st.write("Input patient data below to assess heart disease risk.")
+st.markdown("""
+**Note:**
+- `Sex`: 0 = Female, 1 = Male  
+- `Fasting Blood Sugar (fbs)`: 1 = > 120 mg/dl, 0 = ≤ 120 mg/dl  
+- `Exercise Induced Angina (exang)`: 1 = Yes, 0 = No  
+""")
 
-st.title("Heart Disease Prediction")
-st.subheader("Enter Patient Data:")
+age = st.number_input("Age", min_value=20, max_value=80, value=50)
+sex = st.selectbox("Sex", [0, 1])
+cp = st.selectbox("Chest Pain Type", [0, 1, 2, 3])
+trestbps = st.number_input("Resting Blood Pressure", min_value=90, max_value=200, value=120)
+chol = st.number_input("Cholesterol", min_value=100, max_value=600, value=200)
+fbs = st.selectbox("Fasting Blood Sugar > 120 mg/dl", [0, 1])
+restecg = st.selectbox("Resting ECG", [0, 1, 2])
+thalach = st.number_input("Maximum Heart Rate Achieved", min_value=70, max_value=220, value=150)
+exang = st.selectbox("Exercise Induced Angina", [0, 1])
+oldpeak = st.number_input("Oldpeak (ST depression)", min_value=0.0, max_value=10.0, value=1.0, step=0.1)
+slope = st.selectbox("Slope of ST Segment", [0, 1, 2])
+ca = st.selectbox("Number of major vessels (0-4)", [0, 1, 2, 3, 4])
+thal = st.selectbox("Thalassemia", [0, 1, 2])
 
-age = st.slider("Age", 20, 80, 50)
-trestbps = st.slider("Resting Blood Pressure", 80, 200, 120)
-chol = st.slider("Cholesterol", 100, 600, 200)
-thalach = st.slider("Max Heart Rate Achieved (thalach)", 70, 210, 150)
-exang = st.radio("Exercise Induced Angina", [0, 1])
-oldpeak = st.slider("Oldpeak", 0.0, 6.0, 1.0)
-thal_2 = st.radio("Thal_2", [0, 1])
-thal_3 = st.radio("Thal_3", [0, 1])
-cp_0 = st.radio("Chest Pain Type 0 (cp_0)", [0, 1])
-ca_0 = st.radio("Number of major vessels 0 (ca_0)", [0, 1])
 
-raw_scaled_input = np.array([[age, trestbps, chol, thalach]])
-scaled_input = scaler.transform(raw_scaled_input)
+def encode_onehot(value, classes):
+    return [1 if value == cls else 0 for cls in classes]
 
-scaled_age = scaled_input[0, 0]
-scaled_trestbps = scaled_input[0, 1]
-scaled_chol = scaled_input[0, 2]
-scaled_thalach = scaled_input[0, 3]
+numerical = ['age', 'trestbps', 'chol', 'thalach']
 
-age_chol = scaled_age * scaled_chol
+input_dict = {
+    'sex': sex,
+    'fbs': fbs,
+    'exang': exang,
+    'age': age,
+    'trestbps': trestbps,
+    'chol': chol,
+    'thalach': thalach,
+    'age_chol': age * chol,
+    'age_range': pd.cut([age], bins=[20, 30, 40, 50, 60, 70, 80], labels=False)[0]
+}
 
-input_data = np.array([[exang, age_chol, scaled_chol, scaled_trestbps, scaled_age,
-                        oldpeak, thal_3, cp_0, ca_0, scaled_thalach, thal_2]])
+input_dict.update({
+    **dict(zip(['cp_0', 'cp_1', 'cp_2', 'cp_3'], encode_onehot(cp, [0, 1, 2, 3]))),
+    **dict(zip(['restecg_0', 'restecg_1', 'restecg_2'], encode_onehot(restecg, [0, 1, 2]))),
+    **dict(zip(['slope_0', 'slope_1', 'slope_2'], encode_onehot(slope, [0, 1, 2]))),
+    **dict(zip(['thal_0', 'thal_1', 'thal_2'], encode_onehot(thal, [0, 1, 2]))),
+    **dict(zip(['ca_0', 'ca_1', 'ca_2', 'ca_3', 'ca_4'], encode_onehot(ca, [0, 1, 2, 3, 4])))
+})
+
+user_data = pd.DataFrame([input_dict])
+
+user_data[numerical] = scaler.transform(user_data[numerical])
+
+user_data = user_data[features]
 
 if st.button("Predict"):
-    prediction = model.predict(input_data)[0]
-    prob = model.predict_proba(input_data)[0][1]
+    prediction = model.predict(user_data)[0]
+    chance = model.predict_proba(user_data)[0][1]
 
     if prediction == 1:
-        st.error(f"High risk of heart disease with a {prob:.2f} chance.")
+        st.error(f"High risk of heart disease with a {chance*100:.2f}% chance.")
     else:
-        st.success(f"No heart disease predicted with a {prob:.2f} chance.")
+        st.success(f"No heart disease predicted. Chance: {chance*100:.2f}%.")
