@@ -38,28 +38,25 @@ numerical = ['age', 'trestbps', 'chol', 'thalach']
 
 input_dict = {
     'age': age,
-    'sex': sex,
     'trestbps': trestbps,
     'chol': chol,
-    'fbs': fbs,
     'thalach': thalach,
     'exang': exang,
     'oldpeak': oldpeak,
-    'age_chol': age * chol,
-    'age_range': pd.cut([age], bins=[20, 30, 40, 50, 60, 70, 80], labels=False)[0]
 }
 
 input_dict.update({
     **dict(zip(['cp_0', 'cp_1', 'cp_2', 'cp_3'], encode_onehot(cp, [0, 1, 2, 3]))),
-    **dict(zip(['restecg_0', 'restecg_1', 'restecg_2'], encode_onehot(restecg, [0, 1, 2]))),
     **dict(zip(['slope_0', 'slope_1', 'slope_2'], encode_onehot(slope, [0, 1, 2]))),
     **dict(zip(['ca_0', 'ca_1', 'ca_2', 'ca_3', 'ca_4'], encode_onehot(ca, [0, 1, 2, 3, 4]))),
-    **dict(zip(['thal_0', 'thal_1', 'thal_2'], encode_onehot(thal, [0, 1, 2]))),
+    **dict(zip(['thal_0', 'thal_1', 'thal_2'], encode_onehot(thal, [0, 1, 2])))
 })
 
 user_data = pd.DataFrame([input_dict])
 
 user_data[numerical] = scaler.transform(user_data[numerical])
+
+user_data['age_chol'] = user_data['age'] * user_data['chol']
 
 for col in features:
     if col not in user_data.columns:
